@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Netflix + Letterboxd Ratings Histogram
+// @name         Letterboxd Histogram for Streaming
 // @namespace    http://tampermonkey.net/
-// @version      2025-10-06
+// @version      0.1
 // @description  Show Letterboxd ratings histogram on Netflix movie details
 // @author       Your Name
 // @match        https://www.netflix.com/*
