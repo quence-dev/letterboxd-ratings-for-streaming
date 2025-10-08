@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         Letterboxd Histogram for Streaming
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/quence-dev/letterboxd-ratings-for-streaming
 // @version      0.1
 // @description  Show Letterboxd ratings histogram on Netflix movie details
-// @author       Your Name
+// @homepageURL  https://github.com/quence-dev/letterboxd-ratings-for-streaming
+// @updateURL    https://github.com/quence-dev/letterboxd-ratings-for-streaming/blob/main/Letterboxd_Histogram_for_Streaming.user.js
+// @author       quence-dev
 // @match        https://www.netflix.com/*
 // @grant        GM_xmlhttpRequest
 // @connect      letterboxd.com
