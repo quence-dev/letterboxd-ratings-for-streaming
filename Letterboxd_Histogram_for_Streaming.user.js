@@ -14,6 +14,8 @@
 (function() {
     'use strict';
     console.log("testing change");
+    let pendingTitle = null;
+    let pendingHistogramHTML = null;
 
     // --- Helper: Find movie title from Netflix hover/details ---
     function getMovieTitleFromElement(element) {
@@ -38,7 +40,8 @@
 
     function showHistogram(metadataElement, histogramHTML) {
         if (!histogramHTML) return;
-            let container = metadataElement.parentNode.querySelector('.letterboxd-histogram');
+        
+        let container = metadataElement.querySelector('.letterboxd-histogram');
         if (!container) {
             container = document.createElement('div');
             container.className = 'letterboxd-histogram';
@@ -46,94 +49,69 @@
             container.style.background = '#222';
             container.style.padding = '8px';
             container.style.color = '#fff';
-            // netflixElement.appendChild(container);
-            metadataElement.parentNode.insertBefore(container, metadataElement.nextSibling);
+            metadataElement.appendChild(container);
         }
         container.innerHTML = `<strong>Letterboxd Ratings:</strong><br>${histogramHTML}`;
     }
 
-    function observeForModalAndInject(getHistogramHTML) {
-        let injected = false;
-        const observer = new MutationObserver((mutationsList, obs) => {
-            if (injected) return;
-            for (const mutation of mutationsList) {
-                for (const node of mutation.addedNodes) {
-                    if (
-                        node.nodeType === 1 &&
-                        node.classList.contains('previewModal--wrapper')
-                    ) {
-                        const metadata = node.querySelector('.previewModal--metadataAndControls-container');
-                        if (metadata && getHistogramHTML()) {
-                            showHistogram(metadata, getHistogramHTML());
-                            injected = true;
-                            obs.disconnect();
-                            clearTimeout(timeoutId);
-                            return;
-                        }
+    function fetchHistogram(title) {
+        const letterboxdUrl = getLetterboxdURL(title);
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: letterboxdUrl,
+            onload: function(response) {
+                pendingHistogramHTML = "<em>No Letterboxd ratings histogram found.</em>";
+                if (response.status === 200 && response.responseText.trim() !== '') {
+                    pendingHistogramHTML = response.responseText;
+                    console.log("Fetched html", response.responseText);
+                }
+            },
+            onerror: function(error) {
+                console.error("Letterboxd request failed:", error);
+                pendingHistogramHTML = null;
+            }
+        });
+    }
+
+    // Observe for any new modal
+    const observer = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+            for (const node of mutation.addedNodes) {
+                if (
+                    node.nodeType === 1 &&
+                    node.classList.contains('previewModal--wrapper')
+                ) {
+                    const metadata = node.querySelector('.previewModal--info-container');
+                    if (metadata && pendingHistogramHTML) {
+                        showHistogram(metadata, pendingHistogramHTML);
+                        // Reset after injection
+                        pendingTitle = null;
+                        pendingHistogramHTML = null;
                     }
                 }
             }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-
-        // Optional: Stop observing after 5 seconds if modal never appears
-        const timeoutId = setTimeout(() => observer.disconnect(), 5000);
-
-        // Return a function to allow immediate injection attempt
-        return function tryImmediateInject() {
-            if (injected) return;
-            const modal = document.querySelector('.previewModal--wrapper');
-            if (modal) {
-                const metadata = modal.querySelector('.previewModal--metadataAndControls-container');
-                if (metadata && getHistogramHTML()) {
-                    showHistogram(metadata, getHistogramHTML());
-                    injected = true;
-                    observer.disconnect();
-                    clearTimeout(timeoutId);
-                }
-            }
-        };
-    }
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     // --- Main: Attach hover listener to Netflix movie cards ---
     function attachListeners() {
-        // Adjust selector for movie card details
         document.body.addEventListener('mouseover', function(e) {
-            // Find the closest card or modal
             const card = e.target.closest('.slider-refocus');
             if (!card) return;
-            console.log('Hovered on card:', card);
-            // Prevent duplicate fetch
+
+            // Prevent duplicate processing
             if (card.classList.contains('letterboxd-checked')) return;
             card.classList.add('letterboxd-checked');
+            console.log('hovered on card', card);
 
             const title = getMovieTitleFromElement(card);
             if (!title) return;
 
-            const letterboxdUrl = getLetterboxdURL(title);
-
-            let histogramHTML = null;
-
-            // Start observing for the modal immediately
-            const tryImmediateInject = observeForModalAndInject(() => histogramHTML);
-
-            // Fetch the histogram
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: letterboxdUrl,
-                onload: function(response) {
-                    histogramHTML = "<em>No Letterboxd ratings histogram found.</em>";
-                    if (response.status === 200 && response.responseText.trim() !== '') {
-                        histogramHTML = response.responseText;
-                        console.log("Fetched histogram HTML:", histogramHTML);
-                    }
-                    // Try to inject immediately in case modal is already present
-                    tryImmediateInject();
-                },
-                onerror: function(error) {
-                    console.error("Letterboxd request failed:", error);
-                }
-            });
+            // Set the pending title for the observer
+            pendingTitle = title;
+            pendingHistogramHTML = null;
+            fetchHistogram(title);
         }, true);
     }
 
