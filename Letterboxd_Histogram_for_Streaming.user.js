@@ -1,15 +1,14 @@
 // ==UserScript==
 // @name         Letterboxd Histogram for Streaming
 // @namespace    https://github.com/quence-dev/letterboxd-ratings-for-streaming
-// @version      0.1
+// @version      0.0.1
 // @description  Show Letterboxd ratings histogram on Netflix movie details
-// @homepageURL  https://github.com/quence-dev/letterboxd-ratings-for-streaming
-// @updateURL    https://github.com/quence-dev/letterboxd-ratings-for-streaming/blob/main/Letterboxd_Histogram_for_Streaming.user.js
 // @author       quence-dev
 // @match        https://www.netflix.com/*
 // @grant        GM_xmlhttpRequest
 // @connect      letterboxd.com
 // @run-at       document-end
+// @require      file:////Users/spencervilicic/GitHub/letterboxd-ratings-for-streaming/Letterboxd_Histogram_for_Streaming.user.js
 // ==/UserScript==
 
 (function() {
