@@ -13,7 +13,7 @@
 
 (function() {
     'use strict';
-    console.log("Tampermonkey script started!");
+    console.log("testing change");
 
     // --- Helper: Find movie title from Netflix hover/details ---
     function getMovieTitleFromElement(element) {
@@ -68,9 +68,9 @@
 //         container.innerHTML = `<strong>Letterboxd Ratings:</strong><br>${histogramHTML}`;
 //     }
 
-    function showHistogram(netflixElement, histogramHTML) {
+    function showHistogram(metadataElement, histogramHTML) {
         if (!histogramHTML) return;
-            let container = netflixElement.querySelector('.letterboxd-histogram');
+            let container = metadataElement.parentNode.querySelector('.letterboxd-histogram');
         if (!container) {
             container = document.createElement('div');
             container.className = 'letterboxd-histogram';
@@ -78,9 +78,37 @@
             container.style.background = '#222';
             container.style.padding = '8px';
             container.style.color = '#fff';
-            netflixElement.appendChild(container);
+            // netflixElement.appendChild(container);
+            metadataElement.parentNode.insertBefore(container, metadataElement.nextSibling);
         }
         container.innerHTML = `<strong>Letterboxd Ratings:</strong><br>${histogramHTML}`;
+    }
+
+    function waitForModalAndInject(histogramHTML) {
+        const observer = new MutationObserver((mutationsList, obs) => {
+            for (const mutation of mutationsList) {
+                for (const node of mutation.addedNodes) {
+                    if (
+                        node.nodeType === 1 &&
+                        node.classList.contains('previewModal--wrapper')
+                    ) {
+                        const metadata = node.querySelector('.previewModal--metadataAndControls-container');
+                        if (metadata) {
+                            showHistogram(metadata, histogramHTML);
+                            obs.disconnect();
+                            clearTimeout(timeoutId);
+                            return;
+                        }
+                    }
+                }
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Optional: Stop observing after 5 seconds if modal never appears
+        const timeoutId = setTimeout(() => {
+            observer.disconnect();
+        }, 5000);
     }
 
     // --- Main: Attach hover listener to Netflix movie cards ---
@@ -88,12 +116,13 @@
         // Adjust selector for movie card details
         document.body.addEventListener('mouseover', function(e) {
             // Find the closest card or modal
-            const card = e.target.closest('.slider-refocus, .previewModal--detailsMetadata');
+            const card = e.target.closest('.slider-refocus');
             if (!card) return;
+            console.log('Hovered on card:', card);
             // Prevent duplicate fetch
             if (card.classList.contains('letterboxd-checked')) return;
-
             card.classList.add('letterboxd-checked');
+
             const title = getMovieTitleFromElement(card);
             if (!title) return;
 
@@ -102,21 +131,21 @@
             GM_xmlhttpRequest({
                 method: "GET",
                 url: letterboxdUrl,
-//                 onload: function(response) {
-//                     console.log("Letterboxd request status:", response.status);
-//                     console.log("full text:", response.responseText);
-//                     if (response.status !== 200) return;
-//                     const histogram = extractHistogram(response.responseText);
-//                     console.log('histogram fetched', histogram);
-//                     showHistogram(card, histogram);
-//                 },
                 onload: function(response) {
                     if (response.status !== 200) return;
+
+                    let html = "<em>No Letterboxd ratings histogram found.</em>";
                     if (response.status === 200 && response.responseText.trim() !== '') {
-                        showHistogram(card, response.responseText);
-                    } else {
-                        showHistogram(card, "<em>No Letterboxd ratings histogram found.</em>");
+                        html = response.responseText;
                     }
+                    // Wait for modal and inject when ready
+                    waitForModalAndInject(html);
+
+                    // if (response.status === 200 && response.responseText.trim() !== '') {
+                    //     showHistogram(card, response.responseText);
+                    // } else {
+                    //     showHistogram(card, "<em>No Letterboxd ratings histogram found.</em>");
+                    // }
                 },
                 onerror: function(error) {
                     console.error("Letterboxd request failed:", error);
@@ -127,7 +156,7 @@
 
     // --- Wait for Netflix DOM to load and attach listeners ---
     function waitForNetflix() {
-        if (document.querySelector('.slider-refocus, .previewModal--detailsMetadata')) {
+        if (document.querySelector('.slider-refocus')) {
             attachListeners();
         } else {
             setTimeout(waitForNetflix, 1000);
