@@ -36,38 +36,6 @@
         return `https://letterboxd.com/csi/film/${slug}/ratings-summary/`;
     }
 
-    // --- OLD Helper: Scrape histogram HTML from Letterboxd response ---
-//     function extractHistogram(htmlText) {
-//         // Letterboxd uses class 'ratings-histogram-chart' for the histogram
-//         const div = document.createElement('div');
-//         div.innerHTML = htmlText;
-
-//             // Log all section elements and their classes
-//         const allSections = div.querySelectorAll('.ratings-histogram-chart');
-//         allSections.forEach(sec => console.log('Section class:', sec.className));
-
-//         const chart = div.querySelectorAll('.ratings-histogram-chart');
-//         console.log('chart', chart);
-//         return chart ? chart.outerHTML : null;
-//     }
-
-    // --- OLD Inject histogram into Netflix UI ---
-//     function showHistogram(netflixElement, histogramHTML) {
-//         if (!histogramHTML) return;
-
-//         let container = netflixElement.querySelector('.letterboxd-histogram');
-//         if (!container) {
-//             container = document.createElement('div');
-//             container.className = 'letterboxd-histogram';
-//             // Style it as you like
-//             container.style.marginTop = '8px';
-//             container.style.background = '#222';
-//             container.style.padding = '8px';
-//             netflixElement.appendChild(container);
-//         }
-//         container.innerHTML = `<strong>Letterboxd Ratings:</strong><br>${histogramHTML}`;
-//     }
-
     function showHistogram(metadataElement, histogramHTML) {
         if (!histogramHTML) return;
             let container = metadataElement.parentNode.querySelector('.letterboxd-histogram');
@@ -84,8 +52,10 @@
         container.innerHTML = `<strong>Letterboxd Ratings:</strong><br>${histogramHTML}`;
     }
 
-    function waitForModalAndInject(histogramHTML) {
+    function observeForModalAndInject(getHistogramHTML) {
+        let injected = false;
         const observer = new MutationObserver((mutationsList, obs) => {
+            if (injected) return;
             for (const mutation of mutationsList) {
                 for (const node of mutation.addedNodes) {
                     if (
@@ -93,8 +63,9 @@
                         node.classList.contains('previewModal--wrapper')
                     ) {
                         const metadata = node.querySelector('.previewModal--metadataAndControls-container');
-                        if (metadata) {
-                            showHistogram(metadata, histogramHTML);
+                        if (metadata && getHistogramHTML()) {
+                            showHistogram(metadata, getHistogramHTML());
+                            injected = true;
                             obs.disconnect();
                             clearTimeout(timeoutId);
                             return;
@@ -106,9 +77,22 @@
         observer.observe(document.body, { childList: true, subtree: true });
 
         // Optional: Stop observing after 5 seconds if modal never appears
-        const timeoutId = setTimeout(() => {
-            observer.disconnect();
-        }, 5000);
+        const timeoutId = setTimeout(() => observer.disconnect(), 5000);
+
+        // Return a function to allow immediate injection attempt
+        return function tryImmediateInject() {
+            if (injected) return;
+            const modal = document.querySelector('.previewModal--wrapper');
+            if (modal) {
+                const metadata = modal.querySelector('.previewModal--metadataAndControls-container');
+                if (metadata && getHistogramHTML()) {
+                    showHistogram(metadata, getHistogramHTML());
+                    injected = true;
+                    observer.disconnect();
+                    clearTimeout(timeoutId);
+                }
+            }
+        };
     }
 
     // --- Main: Attach hover listener to Netflix movie cards ---
@@ -128,24 +112,23 @@
 
             const letterboxdUrl = getLetterboxdURL(title);
 
+            let histogramHTML = null;
+
+            // Start observing for the modal immediately
+            const tryImmediateInject = observeForModalAndInject(() => histogramHTML);
+
+            // Fetch the histogram
             GM_xmlhttpRequest({
                 method: "GET",
                 url: letterboxdUrl,
                 onload: function(response) {
-                    if (response.status !== 200) return;
-
-                    let html = "<em>No Letterboxd ratings histogram found.</em>";
+                    histogramHTML = "<em>No Letterboxd ratings histogram found.</em>";
                     if (response.status === 200 && response.responseText.trim() !== '') {
-                        html = response.responseText;
+                        histogramHTML = response.responseText;
+                        console.log("Fetched histogram HTML:", histogramHTML);
                     }
-                    // Wait for modal and inject when ready
-                    waitForModalAndInject(html);
-
-                    // if (response.status === 200 && response.responseText.trim() !== '') {
-                    //     showHistogram(card, response.responseText);
-                    // } else {
-                    //     showHistogram(card, "<em>No Letterboxd ratings histogram found.</em>");
-                    // }
+                    // Try to inject immediately in case modal is already present
+                    tryImmediateInject();
                 },
                 onerror: function(error) {
                     console.error("Letterboxd request failed:", error);
