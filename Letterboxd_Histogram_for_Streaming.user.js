@@ -51,7 +51,7 @@
             container.style.color = '#fff';
             metadataElement.appendChild(container);
         }
-        container.innerHTML = `<strong>Letterboxd Ratings:</strong><br>${histogramHTML}`;
+        container.innerHTML = histogramHTML;
     }
 
     function fetchHistogram(title) {
@@ -100,9 +100,6 @@
             const card = e.target.closest('.slider-refocus');
             if (!card) return;
 
-            // Prevent duplicate processing
-            if (card.classList.contains('letterboxd-checked')) return;
-            card.classList.add('letterboxd-checked');
             console.log('hovered on card', card);
 
             const title = getMovieTitleFromElement(card);
