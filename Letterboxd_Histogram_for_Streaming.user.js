@@ -48,10 +48,6 @@
         if (!container) {
             container = document.createElement('div');
             container.className = 'letterboxd-histogram';
-            container.style.marginTop = '8px';
-            container.style.background = '#222';
-            container.style.padding = '8px';
-            container.style.color = '#fff';
             metadataElement.appendChild(container);
         }
 
@@ -144,6 +140,21 @@
     waitForNetflix();
 
     GM_addStyle(`
+        :root {
+            --title-all-caps-font-size: 1rem;
+            --title-all-caps-line-height: 1.25;
+            --title-all-caps-letter-spacing: .075em;
+            --font-stack-graphik: GraphikWeb, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", Meiryo, sans-serif, ColorEmoji;
+            --sprite-sheet-url: url('https://s.ltrbxd.com/static/img/sprite-DzUy8pgb.svg');
+            --block-divider-color-rgb: 68, 85, 102;
+            --title-all-caps-font-size: 1rem;
+            --title-all-caps-line-height: 1.25;
+            --title-all-caps-letter-spacing: .075em;
+            --block-divider-color-rgb: 68, 85, 102;
+        }
+        .clear {
+            clear: both;
+        }
         .letterboxd-histogram * {
             margin: 0;
             padding: 0;
@@ -155,22 +166,35 @@
             font-family: inherit;
             vertical-align: baseline;
         }
-        :root {
-            --title-all-caps-font-size: 1rem;
-            --title-all-caps-line-height: 1.25;
-            --title-all-caps-letter-spacing: .075em;
-            --font-stack-graphik: GraphikWeb, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", Meiryo, sans-serif, ColorEmoji;
-            --sprite-sheet-url: url('https://s.ltrbxd.com/static/img/sprite-DzUy8pgb.svg');
+        .letterboxd-histogram {
+            padding: 8px;
+            background: #222;
+            width: 250px;
         }
-        .clear {
-            clear: both;
-        }
+
+        /* HTML Elements */
         a {
             color: #678;
             text-decoration: none;
         }
+        ul {
+            list-style: none;
+        }
+        section {
+            position: relative;
+            display: block;
+            padding: 0;
+        }
 
         /* HISTOGRAM CONTAINER */
+        .section {
+            /* margin-top: 2.46153846rem; */
+            padding: 0;
+            position: relative;
+        }
+        .ratings-histogram-chart .section-heading {
+            margin-bottom: 15px;
+        }
         .section-heading {
             font-family: var(--font-stack-graphik);
             font-weight: 400;
@@ -178,9 +202,22 @@
             letter-spacing: var(--title-all-caps-letter-spacing);
             font-size: var(--title-all-caps-font-size);
             line-height: var(--title-all-caps-line-height);
-        }
-        .ratings-histogram-chart .section-heading {
-            margin-bottom: 15px;
+            --margin-block-end: .76923077rem;
+            margin-block-start: initial;
+            margin-block-end: var(--margin-block-end);
+            --content-color: #9ab;
+            color: var(--content-color, currentColor);
+            --divider-thickness: 1px;
+            --divider-color: rgba(var(--block-divider-color-rgb), 1);
+            --divider-padding-block: .38461538rem;
+            padding-block-end: var(--divider-padding-block);
+            border-block-end: var(--divider-thickness, 0) solid var(--divider-color);
+            font-family: var(--font-stack-graphik);
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: var(--title-all-caps-letter-spacing);
+            font-size: var(--title-all-caps-font-size);
+            line-height: var(--title-all-caps-line-height);
         }
         .ratings-histogram-chart .average-rating {
             position: absolute;
@@ -235,6 +272,9 @@
         .rating-histogram .rating-1 {
             left: 0;
         }
+        .rating-histogram .rating-5 {
+            right: 0;
+        }
         .rating-histogram .rating-1, .rating-histogram .rating-5 {
             position: absolute;
             bottom: 0;
@@ -262,6 +302,18 @@
             background-position: -350px -380px;
             height: 9px;
         }
+        .rating-green-tiny .rated-10 {
+            width: 49px;
+        }
+        .rating-histogram i {
+            background: #456;
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border-top-right-radius: 2px;
+            border-top-left-radius: 2px;
+        }
 
         /* Rating */
         .rating {
@@ -280,5 +332,7 @@
             white-space: nowrap;
             overflow: hidden;
         }
+
+        /* Remove all-link element */
     `);
 })();
