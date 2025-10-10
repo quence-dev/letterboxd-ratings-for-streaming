@@ -58,15 +58,22 @@
         const temp = document.createElement('div');
         temp.innerHTML = html;
 
-        const avg = temp.querySelector('.average-rating');
-        const hist = temp.querySelector('.rating-histogram');
+        // Remove unwanted "fans" element
+        temp.querySelector('.all-link')?.remove();
 
-        let result = '';
-        if (avg) result += avg.outerHTML;
-        if (hist) result += hist.outerHTML;
+        const headingEl = temp.querySelector('.section-heading a');
+        headingEl.text = "Letterboxd Ratings";
 
-        console.log("Parsed histogram html", result);
-        return result;
+        // const avg = temp.querySelector('.average-rating');
+        // const hist = temp.querySelector('.rating-histogram');
+
+        // let result = '';
+        // if (avg) result += avg.outerHTML;
+        // if (hist) result += hist.outerHTML;
+
+        // console.log("Parsed histogram html", result);
+
+        return temp.innerHTML;
     }
 
     function fetchHistogram(title) {
@@ -77,8 +84,8 @@
             onload: function(response) {
                 pendingHistogramHTML = "<em>No Letterboxd ratings histogram found.</em>";
                 if (response.status === 200 && response.responseText.trim() !== '') {
-                    // pendingHistogramHTML = getAverageAndHistogram(response.responseText);
-                    pendingHistogramHTML = response.responseText;
+                    pendingHistogramHTML = getAverageAndHistogram(response.responseText);
+                    // pendingHistogramHTML = response.responseText;
                     console.log("Fetched html", response.responseText);
                 }
             },
@@ -168,6 +175,7 @@
         }
         .letterboxd-histogram {
             padding: 8px;
+            margin-top: 8px;
             background: #222;
             width: 250px;
         }
